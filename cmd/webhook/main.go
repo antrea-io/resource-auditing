@@ -14,7 +14,41 @@
 
 package main
 
-func main() {
+import (
+	"flag"
 
+	"antrea.io/resource-auditing/pkg/webhook"
+	"antrea.io/resource-auditing/pkg/webhook/gitmanager"
+	"k8s.io/klog/v2"
+)
+
+var (
+	portFlag string
+	dirFlag  string
+)
+
+func processArgs() {
+	flag.StringVar(&portFlag, "p", "8080", "specifies port that audit webhook listens on")
+	flag.StringVar(&dirFlag, "d", "", "specifies directory where resource repository is created, defaults to current working directory")
+	flag.Parse()
+}
+
+func main() {
+	klog.InitFlags(nil)
+	processArgs()
+	k8s, err := gitmanager.NewKubernetes()
+	if err != nil {
+		klog.ErrorS(err, "unable to create new kube clients")
+		return
+	}
+	cr, err := gitmanager.SetupRepo(k8s, gitmanager.StorageModeDisk, dirFlag)
+	if err != nil {
+		klog.ErrorS(err, "unable to set up resource repository")
+		return
+	}
+	if err := webhook.ReceiveEvents(dirFlag, portFlag, cr); err != nil {
+		klog.ErrorS(err, "an error occurred while running the audit webhook service")
+		return
+	}
 }
 
