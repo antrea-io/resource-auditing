@@ -22,9 +22,10 @@ import (
 )
 
 type StorageModeType string
+
 const (
-    StorageModeDisk StorageModeType = "Disk"
-    StorageModeInMemory StorageModeType = "InMemory"
+	StorageModeDisk     StorageModeType = "Disk"
+	StorageModeInMemory StorageModeType = "InMemory"
 )
 
 type CustomRepo struct {
@@ -49,4 +50,3 @@ func SetupRepo(k *KubeClients, mode StorageModeType, dir string) (*CustomRepo, e
 	}
 	return &cr, nil
 }
-

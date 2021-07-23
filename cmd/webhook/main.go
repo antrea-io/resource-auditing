@@ -17,9 +17,10 @@ package main
 import (
 	"flag"
 
+	"k8s.io/klog/v2"
+
 	"antrea.io/resource-auditing/pkg/webhook"
 	"antrea.io/resource-auditing/pkg/webhook/gitmanager"
-	"k8s.io/klog/v2"
 )
 
 var (
@@ -51,4 +52,3 @@ func main() {
 		return
 	}
 }
-

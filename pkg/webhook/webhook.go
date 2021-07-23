@@ -18,8 +18,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"antrea.io/resource-auditing/pkg/webhook/gitmanager"
 	"k8s.io/klog/v2"
+
+	"antrea.io/resource-auditing/pkg/webhook/gitmanager"
 )
 
 func events(w http.ResponseWriter, r *http.Request, cr *gitmanager.CustomRepo) {
@@ -51,4 +52,3 @@ func ReceiveEvents(dir string, port string, cr *gitmanager.CustomRepo) error {
 	}
 	return nil
 }
-
