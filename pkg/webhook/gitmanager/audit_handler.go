@@ -17,4 +17,3 @@ package gitmanager
 func (cr *CustomRepo) HandleEventList(jsonstring []byte) error {
 	return nil
 }
-

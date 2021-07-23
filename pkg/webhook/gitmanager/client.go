@@ -30,4 +30,3 @@ func NewKubernetes() (*KubeClients, error) {
 		CrdClient: nil,
 	}, nil
 }
-
