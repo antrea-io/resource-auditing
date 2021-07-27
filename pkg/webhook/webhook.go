@@ -20,10 +20,10 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"antrea.io/resource-auditing/pkg/webhook/gitmanager"
+	"antrea.io/resource-auditing/pkg/gitops"
 )
 
-func events(w http.ResponseWriter, r *http.Request, cr *gitmanager.CustomRepo) {
+func events(w http.ResponseWriter, r *http.Request, cr *gitops.CustomRepo) {
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -41,7 +41,7 @@ func events(w http.ResponseWriter, r *http.Request, cr *gitmanager.CustomRepo) {
 	}
 }
 
-func ReceiveEvents(dir string, port string, cr *gitmanager.CustomRepo) error {
+func ReceiveEvents(dir string, port string, cr *gitops.CustomRepo) error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		events(w, r, cr)
 	})

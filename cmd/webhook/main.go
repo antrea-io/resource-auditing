@@ -19,8 +19,8 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"antrea.io/resource-auditing/pkg/gitops"
 	"antrea.io/resource-auditing/pkg/webhook"
-	"antrea.io/resource-auditing/pkg/webhook/gitmanager"
 )
 
 var (
@@ -37,12 +37,12 @@ func processArgs() {
 func main() {
 	klog.InitFlags(nil)
 	processArgs()
-	k8s, err := gitmanager.NewKubernetes()
+	k8s, err := gitops.NewKubernetes()
 	if err != nil {
 		klog.ErrorS(err, "unable to create new kube clients")
 		return
 	}
-	cr, err := gitmanager.SetupRepo(k8s, gitmanager.StorageModeDisk, dirFlag)
+	cr, err := gitops.SetupRepo(k8s, gitops.StorageModeDisk, dirFlag)
 	if err != nil {
 		klog.ErrorS(err, "unable to set up resource repository")
 		return

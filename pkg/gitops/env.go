@@ -12,8 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gitmanager
+package gitops
 
-func (cr *CustomRepo) HandleEventList(jsonstring []byte) error {
-	return nil
+import (
+	"os"
+)
+
+const (
+	svcAcctNameEnvKey   = "SERVICEACCOUNT_NAME"
+	svcAcctDefault      = "audit-account"
+	podNamespaceEnvKey  = "POD_NAMESPACE"
+	podNamespaceDefault = "default"
+)
+
+func GetAuditServiceAccount() string {
+	svcAcctName := os.Getenv(svcAcctNameEnvKey)
+	if svcAcctName == "" {
+		svcAcctName = svcAcctDefault
+	}
+	return svcAcctName
+}
+
+func GetAuditPodNamespace() string {
+	podNamespace := os.Getenv(podNamespaceEnvKey)
+	if podNamespace == "" {
+		podNamespace = podNamespaceDefault
+	}
+	return podNamespace
 }
