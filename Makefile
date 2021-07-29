@@ -5,10 +5,12 @@ LDFLAGS            :=
 GOFLAGS            :=
 BINDIR             ?= $(CURDIR)/bin
 
-.PHONY: resource-auditing
-resource-auditing:
+all: bin
+
+.PHONY: bin
+bin:
 	@mkdir -p $(BINDIR)
-	GOOS=linux $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/resource-auditing
+	GOOS=linux $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/resource-auditing/cmd/...
 
 .PHONY: test
 test:
