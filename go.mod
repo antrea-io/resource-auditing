@@ -9,8 +9,12 @@ replace (
 
 require (
 	antrea.io/antrea v1.2.0
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
+	k8s.io/api v0.21.3
+	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
 	k8s.io/klog/v2 v2.10.0
+	sigs.k8s.io/controller-runtime v0.9.3
 )
