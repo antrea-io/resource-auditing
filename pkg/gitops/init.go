@@ -21,15 +21,13 @@ import (
 	"sync"
 
 	"github.com/ghodss/yaml"
-	"github.com/go-git/go-git/v5"
-	"k8s.io/klog/v2"
-
 	billy "github.com/go-git/go-billy/v5"
 	memfs "github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5"
 	memory "github.com/go-git/go-git/v5/storage/memory"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog/v2"
 )
 
 type StorageModeType string
@@ -139,16 +137,14 @@ func (cr *CustomRepo) createRepo(storer *memory.Storage) (*git.Repository, error
 			klog.V(2).InfoS("resource repository already exists - skipping initialization")
 			return nil, err
 		} else if err != nil {
-			klog.ErrorS(err, "unable to initialize git repo")
-			return nil, err
+			return nil, fmt.Errorf("unable to initialize git repo %w: ", err)
 		}
 		return r, nil
 	}
 	if cr.Dir == "" {
 		path, err := os.Getwd()
 		if err != nil {
-			klog.ErrorS(err, "unable to retrieve the current working directory")
-			return nil, err
+			return nil, fmt.Errorf("unable to retrieve the current working directory: %w", err)
 		}
 		if path != "/" {
 			cr.Dir = path
@@ -160,13 +156,11 @@ func (cr *CustomRepo) createRepo(storer *memory.Storage) (*git.Repository, error
 		klog.V(2).InfoS("resource repository already exists - skipping initialization")
 		r, err := git.PlainOpen(cr.Dir)
 		if err != nil {
-			klog.ErrorS(err, "unable to retrieve existing repository")
-			return nil, err
+			return nil, fmt.Errorf("unable to retrieve existing repository: %w", err)
 		}
 		return r, git.ErrRepositoryAlreadyExists
 	} else if err != nil {
-		klog.ErrorS(err, "unable to initialize git repo")
-		return nil, err
+		return nil, fmt.Errorf("unable to initialize git repo: %w", err)
 	}
 	return r, nil
 }
@@ -174,14 +168,10 @@ func (cr *CustomRepo) createRepo(storer *memory.Storage) (*git.Repository, error
 func (cr *CustomRepo) addAllResources() error {
 	for _, resourceListType := range getAllResourceListTypes() {
 		if err := cr.createResourceDir(resourceListType); err != nil {
-			klog.ErrorS(err, "unable to create resource directory",
-				"gvk", resourceListType.String())
-			return err
+			return fmt.Errorf("unable to create resource directory %s: %w", resourceListType.String(), err)
 		}
 		if err := cr.addResource(resourceListType); err != nil {
-			klog.ErrorS(err, "unable to add resource",
-				"gvk", resourceListType.String())
-			return err
+			return fmt.Errorf("unable to add resource %s: %w", resourceListType.String(), err)
 		}
 	}
 	return nil
@@ -192,9 +182,7 @@ func (cr *CustomRepo) addResource(resourceList schema.GroupVersionKind) error {
 	list.SetGroupVersionKind(resourceList)
 	resources, err := cr.K8s.ListResource(list)
 	if err != nil {
-		klog.ErrorS(err, "could not list resource",
-			"APIVersion", list.GetAPIVersion(),
-			"Kind", list.GetKind())
+		klog.ErrorS(err, "could not list resource APIVersion: %s Kind: %s: %w", list.GetAPIVersion(), list.GetKind(), err)
 		return err
 	}
 	var namespaces []string
@@ -215,12 +203,10 @@ func (cr *CustomRepo) addResource(resourceList schema.GroupVersionKind) error {
 		path := computePath(cr.Dir, gvkDirMap[resourceList], namespace, name+".yaml")
 		y, err := yaml.Marshal(&resources.Items[i])
 		if err != nil {
-			klog.ErrorS(err, "unable to marshal resource config")
-			return err
+			return fmt.Errorf("could not marshal resource config: %w", err)
 		}
 		if err := cr.writeFileToPath(path, y); err != nil {
-			klog.ErrorS(err, "unable to write yaml to path", "path", path)
-			return err
+			return fmt.Errorf("could not write yaml to path %s: %w", path, err)
 		}
 		klog.V(2).InfoS("Added resource", "path", path)
 	}
@@ -237,8 +223,7 @@ func (cr *CustomRepo) createResourceDir(resourceList schema.GroupVersionKind) er
 		err = cr.Fs.MkdirAll(resourceDir, 0700)
 	}
 	if err != nil {
-		klog.ErrorS(err, "unable to create resource directory")
-		return err
+		return fmt.Errorf("unable to create resource directory: %w", err)
 	}
 	return nil
 }
@@ -247,14 +232,12 @@ func (cr *CustomRepo) writeFileToPath(path string, yaml []byte) error {
 	if cr.StorageMode == StorageModeDisk {
 		err := ioutil.WriteFile(path, yaml, 0600)
 		if err != nil {
-			klog.ErrorS(err, "unable to write resource config to file")
-			return err
+			return fmt.Errorf("unable to write resource config to file: %w", err)
 		}
 	} else {
 		newFile, err := cr.Fs.Create(path)
 		if err != nil {
-			klog.ErrorS(err, "unable to write resource config to file")
-			return err
+			return fmt.Errorf("unable to write resource config to file: %w", err)
 		}
 		newFile.Write(yaml)
 		newFile.Close()

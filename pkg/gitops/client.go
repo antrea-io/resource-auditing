@@ -16,7 +16,11 @@ package gitops
 
 import (
 	"context"
+	"fmt"
 	"os"
+
+	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 
 	"antrea.io/antrea/pkg/apis/crd/v1alpha1"
 	networking "k8s.io/api/networking/v1"
@@ -25,9 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -44,16 +46,14 @@ func NewKubernetes() (*K8sClient, error) {
 		}
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
-			klog.ErrorS(err, "unable to build config from flags, check that your KUBECONFIG file is correct!")
-			return nil, err
+			return nil, fmt.Errorf("unable to build config from flags, check KUBECONFIG file: %w", err)
 		}
 	}
 	scheme := runtime.NewScheme()
 	RegisterTypes(scheme)
 	client, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		klog.ErrorS(err, "unable to instantiate new generic client")
-		return nil, err
+		return nil, fmt.Errorf("unable to instantiate new generic client: %w", err)
 	}
 	return &K8sClient{client}, nil
 }
@@ -117,8 +117,7 @@ func (k *K8sClient) GetResource(resource *unstructured.Unstructured, namespace s
 		Name:      name,
 	}, resource)
 	if err != nil {
-		klog.ErrorS(err, "unable to get resource", "namespace", namespace, "name", name)
-		return nil, err
+		return nil, fmt.Errorf("unable to get resource namespace: %s, name: %s: %w", namespace, name, err)
 	}
 	return resource, nil
 }
@@ -126,10 +125,7 @@ func (k *K8sClient) GetResource(resource *unstructured.Unstructured, namespace s
 func (k *K8sClient) ListResource(resourceList *unstructured.UnstructuredList) (*unstructured.UnstructuredList, error) {
 	err := k.List(context.TODO(), resourceList)
 	if err != nil {
-		klog.ErrorS(err, "unable to list resource",
-			"APIVersion", resourceList.GetAPIVersion(),
-			"Kind", resourceList.GetKind())
-		return nil, err
+		return nil, fmt.Errorf("unable to list resource: APIVersion: %s, Kind: %s: %w", resourceList.GetAPIVersion(), resourceList.GetKind(), err)
 	}
 	return resourceList, nil
 }
@@ -148,14 +144,12 @@ func (k *K8sClient) CreateOrUpdateResource(resource *unstructured.Unstructured) 
 		}, oldResource)
 		resource.SetResourceVersion(oldResource.GetResourceVersion())
 		if err := k.Update(context.TODO(), resource); err != nil {
-			klog.ErrorS(err, "unable to update resource", "resourceName", resource.GetName())
-			return err
+			return fmt.Errorf("unable to update resource: resourceName: %s: %w", resource.GetName(), err)
 		}
 		klog.V(2).InfoS("updated resource", "resourceName", resource.GetName())
 		return nil
 	} else {
-		klog.ErrorS(err, "error while creating resource", "resourceName", resource.GetName())
-		return err
+		return fmt.Errorf("error while creating resource: resourceName: %s: %w", resource.GetName(), err)
 	}
 }
 
