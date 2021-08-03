@@ -1,0 +1,309 @@
+﻿{
+  "kind": "EventList",
+  "apiVersion": "audit.k8s.io/v1",
+  "metadata": {},
+  "items": [
+    {
+      "level": "RequestResponse",
+      "auditID": "c05e9a10-4668-4a20-886a-bbb9fbad2d73",
+      "stage": "ResponseComplete",
+      "requestURI": "/apis/networking.k8s.io/v1/namespaces/default/networkpolicies?fieldManager=kubectl-client-side-apply",
+      "verb": "create",
+      "user": {
+        "username": "kubernetes-admin",
+        "groups": [
+          "system:masters",
+          "system:authenticated"
+        ]
+      },
+      "sourceIPs": [
+        "192.168.77.1"
+      ],
+      "userAgent": "kubectl/v1.21.1 (darwin/amd64) kubernetes/5e58841",
+      "objectRef": {
+        "resource": "networkpolicies",
+        "namespace": "default",
+        "name": "allow-client1",
+        "apiGroup": "networking.k8s.io",
+        "apiVersion": "v1"
+      },
+      "responseStatus": {
+        "metadata": {},
+        "code": 201
+      },
+      "requestObject": {
+        "kind": "NetworkPolicy",
+        "apiVersion": "networking.k8s.io/v1",
+        "metadata": {
+          "name": 123,
+          "namespace": "default",
+          "creationTimestamp": null,
+          "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.k8s.io/v1\",\"kind\":\"NetworkPolicy\",\"metadata\":{\"annotations\":{},\"name\":\"allow-client1\",\"namespace\":\"default\"},\"spec\":{\"ingress\":[{\"from\":[{\"podSelector\":{\"matchLabels\":{\"app\":\"client1\"}}}],\"ports\":[{\"protocol\":\"TCP\"}]}],\"podSelector\":{\"matchLabels\":{\"app\":\"nginx\"}},\"policyTypes\":[\"Ingress\"]}}\n"
+          }
+        },
+        "spec": {
+          "podSelector": {
+            "matchLabels": {
+              "app": "nginx"
+            }
+          },
+          "ingress": [
+            {
+              "ports": [
+                {
+                  "protocol": "TCP"
+                }
+              ],
+              "from": [
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "app": "client1"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "policyTypes": [
+            "Ingress"
+          ]
+        }
+      },
+      "responseObject": {
+        "kind": "NetworkPolicy",
+        "apiVersion": "networking.k8s.io/v1",
+        "metadata": {
+          "name": "allow-client1",
+          "namespace": "default",
+          "uid": "63cc6292-d5a3-490b-8b11-c86fd81978bd",
+          "resourceVersion": "355624",
+          "generation": 1,
+          "creationTimestamp": "2021-06-10T20:48:02Z",
+          "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.k8s.io/v1\",\"kind\":\"NetworkPolicy\",\"metadata\":{\"annotations\":{},\"name\":\"allow-client1\",\"namespace\":\"default\"},\"spec\":{\"ingress\":[{\"from\":[{\"podSelector\":{\"matchLabels\":{\"app\":\"client1\"}}}],\"ports\":[{\"protocol\":\"TCP\"}]}],\"podSelector\":{\"matchLabels\":{\"app\":\"nginx\"}},\"policyTypes\":[\"Ingress\"]}}\n"
+          },
+          "managedFields": [
+            {
+              "manager": "kubectl-client-side-apply",
+              "operation": "Update",
+              "apiVersion": "networking.k8s.io/v1",
+              "time": "2021-06-10T20:48:02Z",
+              "fieldsType": "FieldsV1",
+              "fieldsV1": {
+                "f:metadata": {
+                  "f:annotations": {
+                    ".": {},
+                    "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                  }
+                },
+                "f:spec": {
+                  "f:ingress": {},
+                  "f:podSelector": {},
+                  "f:policyTypes": {}
+                }
+              }
+            }
+          ]
+        },
+        "spec": {
+          "podSelector": {
+            "matchLabels": {
+              "app": "nginx"
+            }
+          },
+          "ingress": [
+            {
+              "ports": [
+                {
+                  "protocol": "TCP"
+                }
+              ],
+              "from": [
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "app": "client1"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "policyTypes": [
+            "Ingress"
+          ]
+        }
+      },
+      "requestReceivedTimestamp": "2021-06-10T20:48:02.890702Z",
+      "stageTimestamp": "2021-06-10T20:48:02.895597Z",
+      "annotations": {
+        "authorization.k8s.io/decision": "allow",
+        "authorization.k8s.io/reason": ""
+      }
+    },
+    {
+      "level": "RequestResponse",
+      "auditID": "094e8e21-3f57-46d4-8a51-628f3a74acd4",
+      "stage": "ResponseComplete",
+      "requestURI": "/apis/networking.k8s.io/v1/namespaces/default/networkpolicies/allow-client1?fieldManager=kubectl-client-side-apply",
+      "verb": "patch",
+      "user": {
+        "username": "kubernetes-admin",
+        "groups": [
+          "system:masters",
+          "system:authenticated"
+        ]
+      },
+      "sourceIPs": [
+        "192.168.77.1"
+      ],
+      "userAgent": "kubectl/v1.21.1 (darwin/amd64) kubernetes/5e58841",
+      "objectRef": {
+        "resource": "networkpolicies",
+        "namespace": "default",
+        "name": "allow-client1",
+        "apiGroup": "networking.k8s.io",
+        "apiVersion": "v1"
+      },
+      "responseStatus": {
+        "metadata": {},
+        "code": 200
+      },
+      "requestObject": {
+        "metadata": {
+          "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.k8s.io/v1\",\"kind\":\"NetworkPolicy\",\"metadata\":{\"annotations\":{},\"name\":\"allow-client1\",\"namespace\":\"default\"},\"spec\":{\"ingress\":[{\"from\":[{\"podSelector\":{\"matchLabels\":{\"app\":\"client1\"}}}],\"ports\":[{\"protocol\":\"TCP\"}]}],\"podSelector\":{\"matchLabels\":{\"app\":\"badinput\"}},\"policyTypes\":[\"Ingress\"]}}\n"
+          }
+        },
+        "spec": {
+          "podSelector": {
+            "matchLabels": {
+              "app": "badinput"
+            }
+          }
+        }
+      },
+      "responseObject": {
+        "kind": "NetworkPolicy",
+        "apiVersion": "networking.k8s.io/v1",
+        "metadata": {
+          "name": "allow-client1",
+          "namespace": "default",
+          "uid": "63cc6292-d5a3-490b-8b11-c86fd81978bd",
+          "resourceVersion": "524369",
+          "generation": 2,
+          "creationTimestamp": "2021-06-10T20:48:02Z",
+          "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.k8s.io/v1\",\"kind\":\"NetworkPolicy\",\"metadata\":{\"annotations\":{},\"name\":\"allow-client1\",\"namespace\":\"default\"},\"spec\":{\"ingress\":[{\"from\":[{\"podSelector\":{\"matchLabels\":{\"app\":\"client1\"}}}],\"ports\":[{\"protocol\":\"TCP\"}]}],\"podSelector\":{\"matchLabels\":{\"app\":\"badinput\"}},\"policyTypes\":[\"Ingress\"]}}\n"
+          },
+          "managedFields": [
+            {
+              "manager": "kubectl-client-side-apply",
+              "operation": "Update",
+              "apiVersion": "networking.k8s.io/v1",
+              "time": "2021-06-10T20:48:02Z",
+              "fieldsType": "FieldsV1",
+              "fieldsV1": {
+                "f:metadata": {
+                  "f:annotations": {
+                    ".": {},
+                    "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                  }
+                },
+                "f:spec": {
+                  "f:ingress": {},
+                  "f:podSelector": {},
+                  "f:policyTypes": {}
+                }
+              }
+            }
+          ]
+        },
+        "spec": {
+          "podSelector": {
+            "matchLabels": {
+              "app": "badinput"
+            }
+          },
+          "ingress": [
+            {
+              "ports": [
+                {
+                  "protocol": "TCP"
+                }
+              ],
+              "from": [
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "app": "client1"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "policyTypes": [
+            "Ingress"
+          ]
+        }
+      },
+      "requestReceivedTimestamp": "2021-06-16T04:01:29.457613Z",
+      "stageTimestamp": "2021-06-16T04:01:29.475845Z",
+      "annotations": {
+        "authorization.k8s.io/decision": "allow",
+        "authorization.k8s.io/reason": ""
+      }
+    },
+    {
+      "level": "RequestResponse",
+      "auditID": "6a8ce377-b600-4d02-8a36-f65229e23237",
+      "stage": "ResponseComplete",
+      "requestURI": "/apis/crd.antrea.io/v1alpha1/namespaces/default/networkpolicies/allow-client1",
+      "verb": "delete",
+      "user": {
+        "username": "kubernetes-admin",
+        "groups": [
+          "system:masters",
+          "system:authenticated"
+        ]
+      },
+      "sourceIPs": [
+        "192.168.77.1"
+      ],
+      "userAgent": "kubectl/v1.21.1 (darwin/amd64) kubernetes/5e58841",
+      "objectRef": {
+        "resource": "networkpolicies",
+        "namespace": "default",
+        "name": "allow-client1",
+        "apiGroup": "networking.k8s.io",
+        "apiVersion": "v1"
+      },
+      "responseStatus": {
+        "metadata": {},
+        "status": "Success",
+        "code": 200
+      },
+      "responseObject": {
+        "kind": "Status",
+        "apiVersion": "v1",
+        "metadata": {},
+        "status": "Success",
+        "details": {
+          "name": "deny-client2",
+          "group": "crd.antrea.io",
+          "kind": "networkpolicies",
+          "uid": "ae59900b-c42e-4e59-bc66-fde59d4b9c25"
+        }
+      },
+      "requestReceivedTimestamp": "2021-06-14T18:50:20.338515Z",
+      "stageTimestamp": "2021-06-14T18:50:20.344379Z",
+      "annotations": {
+        "authorization.k8s.io/decision": "allow",
+        "authorization.k8s.io/reason": ""
+      }
+    }
+  ]
+}
