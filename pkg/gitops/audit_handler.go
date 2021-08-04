@@ -40,7 +40,7 @@ func (cr *CustomRepo) HandleEventList(jsonstring []byte) error {
 			continue
 		}
 		if cr.RollbackMode {
-			return fmt.Errorf("could not handle event with rollback in progress: %w", err)
+			return fmt.Errorf("audit skipped - rollback in progress")
 		}
 		if err = cr.HandleEvent(event); err != nil {
 			return fmt.Errorf("could not handle event: %w", err)
@@ -79,7 +79,7 @@ func (cr *CustomRepo) HandleEvent(event auditv1.Event) error {
 		}
 		klog.V(2).InfoS("Successfully deleted resource: %s", message)
 	default:
-		return fmt.Errorf("Must be create, patch, or delete operation.")
+		return fmt.Errorf("must be create/patch/delete operation")
 	}
 	return nil
 }

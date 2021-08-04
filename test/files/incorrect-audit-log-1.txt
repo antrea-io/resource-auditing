@@ -4,7 +4,7 @@
   "metadata": {},
   "items": [
     {
-      "level": "RequestResponse",
+      "level": "RequestResponse"
       "auditID": "c05e9a10-4668-4a20-886a-bbb9fbad2d73",
       "stage": "ResponseComplete",
       "requestURI": "/apis/networking.k8s.io/v1/namespaces/default/networkpolicies?fieldManager=kubectl-client-side-apply",
