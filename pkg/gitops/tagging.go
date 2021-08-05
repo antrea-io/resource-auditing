@@ -24,29 +24,29 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (cr *CustomRepo) TagCommit(commit_sha string, tag string, tagger *object.Signature) error {
-	hash := plumbing.NewHash(commit_sha)
+func (cr *CustomRepo) TagCommit(commitSha string, tag string, tagger *object.Signature) (string, error) {
+	hash := plumbing.NewHash(commitSha)
 	_, err := cr.Repo.CommitObject(hash)
 	if err != nil {
-		return fmt.Errorf("unable to get commit object: %w", err)
+		return "", fmt.Errorf("unable to get commit object: %w", err)
 	}
 	if err = setTag(cr.Repo, hash, tag, tagger); err != nil {
-		return fmt.Errorf("unable to create tag: %w", err)
+		return "", fmt.Errorf("unable to create tag: %w", err)
 	}
-	klog.V(2).InfoS("tag created", "tagName", tag, "commit", commit_sha)
-	return nil
+	klog.V(2).InfoS("Tag created", "tagName", tag, "commit", commitSha)
+	return commitSha, nil
 }
 
-func (cr *CustomRepo) RemoveTag(tag string) error {
+func (cr *CustomRepo) RemoveTag(tag string) (string, error) {
 	if err := cr.Repo.DeleteTag(tag); err != nil {
-		return fmt.Errorf("unable to delete tag: %w", err)
+		return "", fmt.Errorf("unable to delete tag: %w", err)
 	}
-	klog.V(2).InfoS("tag deleted", "tagName", tag)
-	return nil
+	klog.V(2).InfoS("Tag deleted", "tagName", tag)
+	return tag, nil
 }
 
-func setTag(r *git.Repository, commit_sha plumbing.Hash, tag string, tagger *object.Signature) error {
-	_, err := r.CreateTag(tag, commit_sha, &git.CreateTagOptions{
+func setTag(r *git.Repository, commitSha plumbing.Hash, tag string, tagger *object.Signature) error {
+	_, err := r.CreateTag(tag, commitSha, &git.CreateTagOptions{
 		Tagger:  tagger,
 		Message: tag,
 	})

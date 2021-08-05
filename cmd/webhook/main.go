@@ -23,23 +23,23 @@ import (
 	"antrea.io/resource-auditing/pkg/webhook"
 )
 
+func processArgs() {
+	flag.StringVar(&portFlag, "p", "8080", "specifies port that audit webhook listens on")
+	flag.StringVar(&dirFlag, "d", "", "directory where resource repository is created, defaults to current working directory")
+	flag.Parse()
+}
+
 var (
 	portFlag string
 	dirFlag  string
 )
-
-func processArgs() {
-	flag.StringVar(&portFlag, "p", "8080", "specifies port that audit webhook listens on")
-	flag.StringVar(&dirFlag, "d", "", "specifies directory where resource repository is created, defaults to current working directory")
-	flag.Parse()
-}
 
 func main() {
 	klog.InitFlags(nil)
 	processArgs()
 	k8s, err := gitops.NewKubernetes()
 	if err != nil {
-		klog.ErrorS(err, "unable to create new kube clients")
+		klog.ErrorS(err, "unable to create kube client")
 		return
 	}
 	cr, err := gitops.SetupRepo(k8s, gitops.StorageModeDisk, dirFlag)
@@ -47,7 +47,7 @@ func main() {
 		klog.ErrorS(err, "unable to set up resource repository")
 		return
 	}
-	if err := webhook.ReceiveEvents(dirFlag, portFlag, cr); err != nil {
+	if err := webhook.ReceiveEvents(portFlag, cr); err != nil {
 		klog.ErrorS(err, "an error occurred while running the audit webhook service")
 		return
 	}
