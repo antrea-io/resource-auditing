@@ -156,8 +156,7 @@ func (k *K8sClient) CreateOrUpdateResource(resource *unstructured.Unstructured) 
 func (k *K8sClient) DeleteResource(resource *unstructured.Unstructured) error {
 	err := k.Delete(context.TODO(), resource)
 	if err != nil {
-		klog.ErrorS(err, "unable to delete resource", "resourceName", resource.GetName())
-		return err
+		return fmt.Errorf("unable to delete resource %s: %w", resource.GetName(), err)
 	}
 	klog.V(2).InfoS("deleted k8s network policy", "resourceName", resource.GetName())
 	return nil
