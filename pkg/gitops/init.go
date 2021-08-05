@@ -115,18 +115,15 @@ func SetupRepo(k8s *K8sClient, mode StorageModeType, dir string) (*CustomRepo, e
 		klog.V(2).InfoS("resource repository already exists - skipping initialization")
 		return &cr, nil
 	} else if err != nil {
-		klog.ErrorS(err, "unable to create resource repository")
-		return nil, err
+		return nil, fmt.Errorf("unable to create resource repository: %w", err)
 	}
 	if err := cr.addAllResources(); err != nil {
-		klog.ErrorS(err, "unable to add resource yamls to repository")
-		return nil, err
+		return nil, fmt.Errorf("unable to add resource yamls to repository: %w", err)
 	}
 	if err := cr.AddAndCommit("audit-init", "system@audit.antrea.io", "Initial commit of existing policies"); err != nil {
-		klog.ErrorS(err, "unable to add and commit existing resources to repository")
-		return nil, err
+		return nil, fmt.Errorf("unable to add/commit existing reosurces to repository: %w", err)
 	}
-	klog.V(2).Infof("Repository successfully initialized at %s", cr.Dir)
+	klog.V(2).Infof("repository successfully initialized at %s", cr.Dir)
 	return &cr, nil
 }
 
@@ -182,8 +179,7 @@ func (cr *CustomRepo) addResource(resourceList schema.GroupVersionKind) error {
 	list.SetGroupVersionKind(resourceList)
 	resources, err := cr.K8s.ListResource(list)
 	if err != nil {
-		klog.ErrorS(err, "could not list resource APIVersion: %s Kind: %s: %w", list.GetAPIVersion(), list.GetKind(), err)
-		return err
+		return fmt.Errorf("could not list resource APIVersion: %s Kind: %s: %w", list.GetAPIVersion(), list.GetKind(), err)
 	}
 	var namespaces []string
 	for i, np := range resources.Items {
@@ -208,7 +204,7 @@ func (cr *CustomRepo) addResource(resourceList schema.GroupVersionKind) error {
 		if err := cr.writeFileToPath(path, y); err != nil {
 			return fmt.Errorf("could not write yaml to path %s: %w", path, err)
 		}
-		klog.V(2).InfoS("Added resource", "path", path)
+		klog.V(2).InfoS("added resource", "path", path)
 	}
 	return nil
 }
