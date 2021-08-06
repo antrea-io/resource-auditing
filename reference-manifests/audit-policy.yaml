@@ -1,0 +1,9 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  - level: RequestResponse
+    resources:
+    - group: "networking.k8s.io"
+      resources: ["networkpolicies"]
+    - group: "crd.antrea.io"
+      resources: ["networkpolicies","clusternetworkpolicies","tiers"]
