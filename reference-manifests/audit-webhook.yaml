@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: audit-pv-volume
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: audit-storage
+  local:
+    path: /data/antrea-audit
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+          - key: audit
+            operator: In
+            values:
+            - target
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: audit-pv-claim
+spec:
+  storageClassName: audit-storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-deployment
+  labels:
+    app: audit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: audit
+  template:
+    metadata:
+      labels:
+        app: audit
+    spec:
+      volumes:
+      - name: audit-pv-storage
+        persistentVolumeClaim:
+          claimName: audit-pv-claim
+      containers:
+      - name: audit
+        args: ["-d", "/data", "-v", "2"]
+        env:
+        - name: SERVICEACCOUNT_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: stanleywbwong/audit-webhook
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - mountPath: "/data"
+          name: audit-pv-storage
+      - name: audit-gui
+        image: stanleywbwong/audit-webui
+        volumeMounts:
+        - mountPath: "/data"
+          name: audit-pv-storage
+      serviceAccountName: audit-account
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-service
+spec:
+  selector:
+    app: audit
+  ports:
+    - name: webhook
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webui-service
+spec:
+  type: NodePort
+  selector:
+    app: audit
+  ports: 
+    - name: webui
+      protocol: TCP 
+      port: 8008
+      targetPort: 8000
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: audit-account
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: audit-role
+rules:
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
+- apiGroups: ["crd.antrea.io"]
+  resources: ["networkpolicies", "clusternetworkpolicies", "tiers"]
+  verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: audit-binding
+subjects:
+- kind: ServiceAccount
+  name: audit-account
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: audit-role
+  apiGroup: rbac.authorization.k8s.io
