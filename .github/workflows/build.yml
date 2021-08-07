@@ -1,0 +1,27 @@
+name: Build and push Docker images
+on:
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+
+jobs:
+  build-and-push:
+    runs-on: [ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build antrea/audit-webhook Docker image
+      run: make audit-webhook
+    - name: Build antrea/audit-webui Docker image
+      run: make audit-webui
+    - name: Push Docker images to registry
+      if: ${{ github.repository == 'antrea-io/resource-auditing' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      run: |
+        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        docker push antrea/audit-webhook:latest
+        docker push antrea/audit-webui:latest
