@@ -29,7 +29,7 @@ func TestHandleEventList(t *testing.T) {
 	}
 
 	jsonstring, err := ioutil.ReadFile("../../test/files/correct-audit-log.txt")
-	assert.NoError(t, err, "unable to read mock audit log")
+	assert.NoError(t, err, "could not read mock audit log")
 
 	cr, err := SetupRepo(k8s, StorageModeInMemory, dir)
 	assert.NoError(t, err, "could not set up repo")
@@ -45,7 +45,7 @@ func TestHandleEventList(t *testing.T) {
 	for i := 1; i < 4; i++ {
 		filename := fmt.Sprintf("%s%d%s", "../../test/files/incorrect-audit-log-", i, ".txt")
 		jsonstring, err := ioutil.ReadFile(filename)
-		assert.NoError(t, err, "unable to read audit log")
+		assert.NoError(t, err, "could not read mock audit log")
 		err = cr.HandleEventList(jsonstring)
 		assert.Error(t, err, "should have returned error on bad audit log")
 	}

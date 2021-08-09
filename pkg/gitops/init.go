@@ -56,6 +56,14 @@ var gvkDirMap = map[schema.GroupVersionKind]string{
 	}: "antrea-tiers",
 }
 
+func GetResources() []string {
+	var resources []string
+	for _, resource := range gvkDirMap {
+		resources = append(resources, resource)
+	}
+	return resources
+}
+
 func getAllResourceListTypes() []schema.GroupVersionKind {
 	return []schema.GroupVersionKind{
 		{
