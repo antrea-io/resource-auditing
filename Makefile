@@ -17,13 +17,13 @@ test:
 	@echo "==> Running all tests <=="
 	GOOS=linux $(GO) test ./...
 
-.PHONY: audit-controller
-audit-controller:
-	docker build -t audit/controller -f build/images/audit-controller/Dockerfile .
+.PHONY: audit-webhook
+audit-webhook:
+	docker build -t antrea/audit-webhook -f build/images/webhook/Dockerfile .
 
 .PHONY: audit-webui
 audit-webui:
-	docker build -t audit/webui -f build/images/webui/Dockerfile .
+	docker build -t antrea/audit-webui -f build/images/webui/Dockerfile .
 
 # code linting
 .golangci-bin:

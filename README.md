@@ -3,14 +3,14 @@
 
 ## Overview
 This project provides an auditing system for network policy-related, Kubernetes
-resources and Antrea specific CRDs that tracks creations, updates, and deletions
-of these resources, stored as YAML files backed by a Git repository. The system
-also comes with a CLI for querying and filtering the repository for changes 
-based onfilters like date range or service account responsible for those 
-changes, as well as a tagging and rollback feature for reverting the cluster 
-state if the current cluster state is undesirable. A webUI service is linked 
-to the repository, allowing for easy visualization of the entire history of
-resource configurations.
+resources and Antrea specific CRDs, that tracks creations, updates, and
+deletions of these resources, stored as YAML files backed by a Git
+repository. The system also comes with a CLI for querying and filtering the
+repository for changes based onfilters like date range or service account
+responsible for those changes, as well as a tagging and rollback feature for
+reverting the cluster state if the current cluster state is undesirable. A webUI
+service is linked to the repository, allowing for easy visualization of the
+entire history of resource configurations.
 
 ## Getting Started
 Ensure `kubectl` is running correctly prior to getting started. A label is used
