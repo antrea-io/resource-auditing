@@ -40,7 +40,7 @@ func (cr *CustomRepo) HandleEventList(jsonstring []byte) error {
 			continue
 		}
 		if cr.RollbackMode {
-			return fmt.Errorf("audit skipped - rollback in progress")
+			return fmt.Errorf("rollback in progress")
 		}
 		if err = cr.HandleEvent(event); err != nil {
 			return fmt.Errorf("could not handle event: %w", err)
@@ -61,7 +61,7 @@ func (cr *CustomRepo) HandleEvent(event auditv1.Event) error {
 		if err := cr.AddAndCommit(user, email, "Created "+message); err != nil {
 			return fmt.Errorf("could not add/commit add operation: %w", err)
 		}
-		klog.V(2).InfoS("successfully created resource: %s", message)
+		klog.V(2).InfoS("successfully created resource", "resource", message)
 	case "patch":
 		if err := cr.modifyFile(event); err != nil {
 			return fmt.Errorf("could not update resource: %w", err)
@@ -69,7 +69,7 @@ func (cr *CustomRepo) HandleEvent(event auditv1.Event) error {
 		if err := cr.AddAndCommit(user, email, "Updated "+message); err != nil {
 			return fmt.Errorf("could not add/commit patch operation: %w", err)
 		}
-		klog.V(2).InfoS("successfully updated resource: %s", message)
+		klog.V(2).InfoS("successfully updated resource", "resource", message)
 	case "delete":
 		if err := cr.deleteFile(event); err != nil {
 			return fmt.Errorf("could not delete resource: %w", err)
@@ -77,7 +77,7 @@ func (cr *CustomRepo) HandleEvent(event auditv1.Event) error {
 		if err := cr.AddAndCommit(user, email, "Deleted "+message); err != nil {
 			return fmt.Errorf("could not add/commit the delete operation: %w", err)
 		}
-		klog.V(2).InfoS("successfully deleted resource: %s", message)
+		klog.V(2).InfoS("successfully deleted resource", "resource", message)
 	default:
 		return fmt.Errorf("must be create/patch/delete operation")
 	}

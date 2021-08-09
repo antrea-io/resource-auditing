@@ -106,7 +106,7 @@ func TestRollback(t *testing.T) {
 		Email: "test@antrea.audit.io",
 		When:  time.Now(),
 	}
-	err = cr.TagCommit(h.Hash().String(), "test-tag", testSig)
+	_, err = cr.TagCommit(h.Hash().String(), "test-tag", testSig)
 	assert.NoError(t, err, "unable to create new tag")
 
 	// Create, update, and delete a resource
@@ -153,7 +153,7 @@ func TestRollback(t *testing.T) {
 	// Attempt rollback
 	commit, err := cr.TagToCommit("test-tag")
 	assert.NoError(t, err, "could not retrieve commit from tag")
-	err = cr.RollbackRepo(commit)
+	_, err = cr.RollbackRepo(commit)
 	assert.NoError(t, err, "rollback failed")
 
 	// Check latest commit

@@ -57,7 +57,7 @@ func (cr *CustomRepo) HashToCommit(commitSha string) (*object.Commit, error) {
 	return commit, nil
 }
 
-func (cr *CustomRepo) RollbackRepo(targetCommit *object.Commit) error {
+func (cr *CustomRepo) RollbackRepo(targetCommit *object.Commit) (string, error) {
 	cr.Mutex.Lock()
 	defer cr.Mutex.Unlock()
 
@@ -68,39 +68,39 @@ func (cr *CustomRepo) RollbackRepo(targetCommit *object.Commit) error {
 	// Get patch between head and target commit
 	w, err := cr.Repo.Worktree()
 	if err != nil {
-		return fmt.Errorf("unable to get git worktree from repository: %w", err)
+		return "", fmt.Errorf("unable to get git worktree from repository: %w", err)
 	}
 	h, err := cr.Repo.Head()
 	if err != nil {
-		return fmt.Errorf("unable to get repo head: %w", err)
+		return "", fmt.Errorf("unable to get repo head: %w", err)
 	}
 	headCommit, err := cr.Repo.CommitObject(h.Hash())
 	if err != nil {
-		return fmt.Errorf("unable to get head commit: %w", err)
+		return "", fmt.Errorf("unable to get head commit: %w", err)
 	}
 	patch, err := headCommit.Patch(targetCommit)
 	if err != nil {
-		return fmt.Errorf("unable to get patch between commits: %w", err)
+		return "", fmt.Errorf("unable to get patch between commits: %w", err)
 	}
 
 	// Must do cluster delete requests before resetting in order to be able to read metadata from files
 	if err := cr.doDeletePatch(patch); err != nil {
-		return fmt.Errorf("could not patch cluster to old commit state (delete phase): %w", err)
+		return "", fmt.Errorf("could not patch cluster to old commit state (delete phase): %w", err)
 	}
 
 	// Update repo using resets
 	err = resetWorktree(w, targetCommit.Hash, git.HardReset)
 	if err != nil {
-		return fmt.Errorf("unable to hard reset repo: %w", err)
+		return "", fmt.Errorf("unable to hard reset repo: %w", err)
 	}
 	err = resetWorktree(w, h.Hash(), git.SoftReset)
 	if err != nil {
-		return fmt.Errorf("unable to hard reset repo: %w", err)
+		return "", fmt.Errorf("unable to hard reset repo: %w", err)
 	}
 
 	// Must similarly do cluster update/create requests after resetting
 	if err := cr.doCreateUpdatePatch(patch); err != nil {
-		return fmt.Errorf("could not patch cluster to old commit state (create/update phase): %w", err)
+		return "", fmt.Errorf("could not patch cluster to old commit state (create/update phase): %w", err)
 	}
 
 	// Finally commit changes to repo after cluster updates
@@ -108,11 +108,11 @@ func (cr *CustomRepo) RollbackRepo(targetCommit *object.Commit) error {
 	email := "system@audit.antrea.io"
 	message := "Rollback to commit " + targetCommit.Hash.String()
 	if err := cr.AddAndCommit(username, email, message); err != nil {
-		return fmt.Errorf("error while committing rollback: %w", err)
+		return "", fmt.Errorf("error while committing rollback: %w", err)
 	}
 	cr.RollbackMode = false
-	klog.V(2).InfoS("rollback successful", "targetCommit", targetCommit.Hash.String())
-	return nil
+	klog.V(2).InfoS("Rollback successful", "targetCommit", targetCommit.Hash.String())
+	return targetCommit.Hash.String(), nil
 }
 
 func resetWorktree(w *git.Worktree, hash plumbing.Hash, mode git.ResetMode) error {

@@ -40,7 +40,7 @@ func TestHandleEventList(t *testing.T) {
 	cr.RollbackMode = true
 	err = cr.HandleEventList(jsonstring)
 	cr.RollbackMode = false
-	assert.EqualError(t, err, "audit skipped - rollback in progress")
+	assert.EqualError(t, err, "rollback in progress")
 
 	for i := 1; i < 4; i++ {
 		filename := fmt.Sprintf("%s%d%s", "../../test/files/incorrect-audit-log-", i, ".txt")

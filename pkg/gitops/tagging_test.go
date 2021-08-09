@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,13 +39,13 @@ func TestTagging(t *testing.T) {
 		When:  time.Now(),
 	}
 	// Attempt to add tag to nonexistent commit
-	err = cr.TagCommit("bad-hash", "test-tag", testSig)
+	_, err = cr.TagCommit("bad-hash", "test-tag", testSig)
 	assert.Error(t, err, "should have returned error on bad commit hash")
 
 	// Create new tags successfully
-	err = cr.TagCommit(h.Hash().String(), "test-tag", testSig)
+	_, err = cr.TagCommit(h.Hash().String(), "test-tag", testSig)
 	assert.NoError(t, err, "unable to create 1st new tag")
-	err = cr.TagCommit(h.Hash().String(), "test-tag-2", testSig)
+	_, err = cr.TagCommit(h.Hash().String(), "test-tag-2", testSig)
 	assert.NoError(t, err, "unable to create 2nd new tag")
 
 	_, err = cr.Repo.Tag("test-tag")
@@ -53,15 +54,27 @@ func TestTagging(t *testing.T) {
 	assert.NoError(t, err, "could not retrieve 2nd created tag")
 
 	// Attempt to add tag with the same name
-	err = cr.TagCommit(h.Hash().String(), "test-tag", testSig)
+	_, err = cr.TagCommit(h.Hash().String(), "test-tag", testSig)
 	assert.EqualError(t, err, "unable to create tag: tag already exists")
 
-	tags, _ := cr.Repo.TagObjects()
+	tags, _ := cr.Repo.Tags()
 	tagCount := 0
-	err = tags.ForEach(func(tag *object.Tag) error {
+	err = tags.ForEach(func(ref *plumbing.Reference) error {
 		tagCount += 1
 		return nil
 	})
 	assert.NoError(t, err, "could not iterate through repo tags")
 	assert.Equal(t, 2, tagCount, "unexpected number of tags, should have 2 tags")
+
+	// Delete tag
+	_, err = cr.RemoveTag("test-tag-2")
+	assert.NoError(t, err, "unable to delete 2nd tag")
+	tags, _ = cr.Repo.Tags()
+	tagCount = 0
+	err = tags.ForEach(func(ref *plumbing.Reference) error {
+		tagCount += 1
+		return nil
+	})
+	assert.NoError(t, err, "could not iterate through repo tags")
+	assert.Equal(t, 1, tagCount, "unexpected number of tags, should have 1 tag")
 }
