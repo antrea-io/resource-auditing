@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 
 	"github.com/spf13/cobra"
 
@@ -37,7 +36,7 @@ var rollbackTag, rollbackSHA string
 // shared flags
 var serverAddr string
 
-var commandName = path.Base(os.Args[0])
+var commandName = "auditctl"
 
 var rootCmd = &cobra.Command{
 	Use:  commandName,
