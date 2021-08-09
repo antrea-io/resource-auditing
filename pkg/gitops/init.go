@@ -16,14 +16,18 @@ package gitops
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/ghodss/yaml"
 	billy "github.com/go-git/go-billy/v5"
 	memfs "github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/storage"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	memory "github.com/go-git/go-git/v5/storage/memory"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -93,26 +97,21 @@ type CustomRepo struct {
 	Repo           *git.Repository
 	K8s            *K8sClient
 	RollbackMode   bool
-	StorageMode    StorageModeType
 	ServiceAccount string
-	Dir            string
 	Fs             billy.Filesystem
 	Mutex          sync.Mutex
 }
 
 func SetupRepo(k8s *K8sClient, mode StorageModeType, dir string) (*CustomRepo, error) {
-	if mode != StorageModeDisk && mode != StorageModeInMemory {
-		return nil, fmt.Errorf("mode must be memory(mem) or disk(disk), '%s' is not valid", mode)
+	storer, fs, err := setupStorage(dir, mode)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set up filesystem/storer backend for repo")
 	}
-	storer := memory.NewStorage()
-	fs := memfs.New()
 	svcAcct := "system:serviceaccount:" + GetAuditPodNamespace() + ":" + GetAuditServiceAccount()
 	cr := CustomRepo{
 		K8s:            k8s,
 		RollbackMode:   false,
-		StorageMode:    mode,
 		ServiceAccount: svcAcct,
-		Dir:            dir,
 		Fs:             fs,
 	}
 	cr.Mutex.Lock()
@@ -131,41 +130,37 @@ func SetupRepo(k8s *K8sClient, mode StorageModeType, dir string) (*CustomRepo, e
 	if err := cr.AddAndCommit("audit-init", "system@audit.antrea.io", "Initial commit of existing policies"); err != nil {
 		return nil, fmt.Errorf("unable to add/commit existing reosurces to repository: %w", err)
 	}
-	klog.V(2).Infof("repository successfully initialized at %s", cr.Dir)
+	klog.V(2).Infof("repository successfully initialized at %s", dir)
 	return &cr, nil
 }
 
-func (cr *CustomRepo) createRepo(storer *memory.Storage) (*git.Repository, error) {
-	if cr.StorageMode == StorageModeInMemory {
-		r, err := git.Init(storer, cr.Fs)
-		if err == git.ErrRepositoryAlreadyExists {
-			klog.V(2).InfoS("resource repository already exists - skipping initialization")
-			return nil, err
-		} else if err != nil {
-			return nil, fmt.Errorf("unable to initialize git repo %w: ", err)
+func setupStorage(dir string, mode StorageModeType) (storage.Storer, billy.Filesystem, error) {
+	var storer storage.Storer
+	var worktreeFs, storerFs billy.Filesystem
+	if mode == StorageModeDisk {
+		if dir == "" {
+			dir, _ = os.Getwd()
 		}
-		return r, nil
+		dir = filepath.Join(dir, "resource-auditing-repo")
+		worktreeFs = osfs.New(dir)
+		storerFs = osfs.New(filepath.Join(dir, ".git"))
+		storer = filesystem.NewStorage(storerFs, cache.NewObjectLRUDefault())
+	} else if mode == StorageModeInMemory {
+		worktreeFs = memfs.New()
+		storer = memory.NewStorage()
+	} else {
+		return nil, nil, fmt.Errorf("mode must be memory(mem) or disk(disk), '%s' is not valid", mode)
 	}
-	if cr.Dir == "" {
-		path, err := os.Getwd()
-		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve the current working directory: %w", err)
-		}
-		if path != "/" {
-			cr.Dir = path
-		}
-	}
-	cr.Dir += "/resource-auditing-repo"
-	r, err := git.PlainInit(cr.Dir, false)
+	return storer, worktreeFs, nil
+}
+
+func (cr *CustomRepo) createRepo(storer storage.Storer) (*git.Repository, error) {
+	r, err := git.Init(storer, cr.Fs)
 	if err == git.ErrRepositoryAlreadyExists {
-		klog.V(2).InfoS("resource repository already exists - skipping initialization")
-		r, err := git.PlainOpen(cr.Dir)
-		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve existing repository: %w", err)
-		}
-		return r, git.ErrRepositoryAlreadyExists
+		r, _ := git.Open(storer, cr.Fs)
+		return r, err
 	} else if err != nil {
-		return nil, fmt.Errorf("unable to initialize git repo: %w", err)
+		return nil, fmt.Errorf("unable to initialize git repo: %w ", err)
 	}
 	return r, nil
 }
@@ -173,10 +168,10 @@ func (cr *CustomRepo) createRepo(storer *memory.Storage) (*git.Repository, error
 func (cr *CustomRepo) addAllResources() error {
 	for _, resourceListType := range getAllResourceListTypes() {
 		if err := cr.createResourceDir(resourceListType); err != nil {
-			return fmt.Errorf("unable to create resource directory %s: %w", resourceListType.String(), err)
+			return fmt.Errorf("unable to create directory for resource type %s: %w", resourceListType.String(), err)
 		}
 		if err := cr.addResource(resourceListType); err != nil {
-			return fmt.Errorf("unable to add resource %s: %w", resourceListType.String(), err)
+			return fmt.Errorf("unable to add resources for type %s: %w", resourceListType.String(), err)
 		}
 	}
 	return nil
@@ -196,15 +191,10 @@ func (cr *CustomRepo) addResource(resourceList schema.GroupVersionKind) error {
 		namespace := np.GetNamespace()
 		if !stringInSlice(namespace, namespaces) {
 			namespaces = append(namespaces, namespace)
-			if cr.StorageMode == StorageModeDisk {
-				namespaceDir := computePath(cr.Dir, gvkDirMap[resourceList], namespace, "")
-				os.Mkdir(namespaceDir, 0700)
-			} else {
-				namespaceDir := computePath("", gvkDirMap[resourceList], namespace, "")
-				cr.Fs.MkdirAll(namespaceDir, 0700)
-			}
+			namespaceDir := computePath("", gvkDirMap[resourceList], namespace, "")
+			cr.Fs.MkdirAll(namespaceDir, 0700)
 		}
-		path := computePath(cr.Dir, gvkDirMap[resourceList], namespace, name+".yaml")
+		path := computePath("", gvkDirMap[resourceList], namespace, name+".yaml")
 		y, err := yaml.Marshal(&resources.Items[i])
 		if err != nil {
 			return fmt.Errorf("could not marshal resource config: %w", err)
@@ -218,14 +208,8 @@ func (cr *CustomRepo) addResource(resourceList schema.GroupVersionKind) error {
 }
 
 func (cr *CustomRepo) createResourceDir(resourceList schema.GroupVersionKind) error {
-	var err error
-	if cr.StorageMode == StorageModeDisk {
-		resourceDir := computePath(cr.Dir, gvkDirMap[resourceList], "", "")
-		err = os.Mkdir(resourceDir, 0700)
-	} else {
-		resourceDir := computePath("", gvkDirMap[resourceList], "", "")
-		err = cr.Fs.MkdirAll(resourceDir, 0700)
-	}
+	resourceDir := computePath("", gvkDirMap[resourceList], "", "")
+	err := cr.Fs.MkdirAll(resourceDir, 0700)
 	if err != nil {
 		return fmt.Errorf("unable to create resource directory: %w", err)
 	}
@@ -233,18 +217,11 @@ func (cr *CustomRepo) createResourceDir(resourceList schema.GroupVersionKind) er
 }
 
 func (cr *CustomRepo) writeFileToPath(path string, yaml []byte) error {
-	if cr.StorageMode == StorageModeDisk {
-		err := ioutil.WriteFile(path, yaml, 0600)
-		if err != nil {
-			return fmt.Errorf("unable to write resource config to file: %w", err)
-		}
-	} else {
-		newFile, err := cr.Fs.Create(path)
-		if err != nil {
-			return fmt.Errorf("unable to write resource config to file: %w", err)
-		}
-		newFile.Write(yaml)
-		newFile.Close()
+	newFile, err := cr.Fs.Create(path)
+	if err != nil {
+		return fmt.Errorf("unable to write resource config to file: %w", err)
 	}
+	defer newFile.Close()
+	newFile.Write(yaml)
 	return nil
 }
