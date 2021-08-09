@@ -17,8 +17,6 @@ package gitops
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 
 	"github.com/ghodss/yaml"
 	"github.com/go-git/go-git/v5"
@@ -132,7 +130,7 @@ func (cr *CustomRepo) doDeletePatch(patch *object.Patch) error {
 	for _, filePatch := range patch.FilePatches() {
 		fromFile, toFile := filePatch.Files()
 		if toFile == nil {
-			path := filepath.Join(cr.Dir, fromFile.Path())
+			path := fromFile.Path()
 			resource, err := cr.getResourceByPath(path)
 			if err != nil {
 				return fmt.Errorf("unable to read resource at path %s: %w", path, err)
@@ -150,7 +148,7 @@ func (cr *CustomRepo) doCreateUpdatePatch(patch *object.Patch) error {
 	for _, filePatch := range patch.FilePatches() {
 		_, toFile := filePatch.Files()
 		if toFile != nil {
-			path := filepath.Join(cr.Dir, toFile.Path())
+			path := toFile.Path()
 			resource, err := cr.getResourceByPath(path)
 			if err != nil {
 				return fmt.Errorf("unable to read resource at path %s: %w", path, err)
@@ -188,17 +186,14 @@ func (cr *CustomRepo) getResourceByPath(path string) (*unstructured.Unstructured
 
 func (cr *CustomRepo) readResource(resource *unstructured.Unstructured, path string) error {
 	var y []byte
-	if cr.StorageMode == StorageModeDisk {
-		y, _ = ioutil.ReadFile(path)
-	} else {
-		fstat, _ := cr.Fs.Stat(path)
-		y = make([]byte, fstat.Size())
-		f, err := cr.Fs.Open(path)
-		if err != nil {
-			return fmt.Errorf("error opening file: %w", err)
-		}
-		f.Read(y)
+	klog.Info(path)
+	fstat, _ := cr.Fs.Stat(path)
+	y = make([]byte, fstat.Size())
+	f, err := cr.Fs.Open(path)
+	if err != nil {
+		return fmt.Errorf("error opening file: %w", err)
 	}
+	f.Read(y)
 	j, err := yaml.YAMLToJSON(y)
 	if err != nil {
 		return fmt.Errorf("error converting from YAML to JSON: %w", err)
