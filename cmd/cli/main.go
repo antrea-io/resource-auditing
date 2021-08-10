@@ -64,6 +64,12 @@ var tagCmd = &cobra.Command{
 		return nil
 	},
 	Run: runTag,
+	Example: `	Tag a commit in the auditing repository
+	$ auditctl tag create new-tag 6dd1f926c346f06fc2c57d356ed648a2b518e74c
+	Tag with author/email signature
+	$ auditctl tag create new-tag-2 6dd1f926c346f06fc2c57d356ed648a2b518e74c -a current-user -e user@audit.io
+	Delete a tag
+	$ auditctl tag delete new-tag`,
 }
 
 var rollbackCmd = &cobra.Command{
@@ -79,6 +85,10 @@ var rollbackCmd = &cobra.Command{
 		return nil
 	},
 	Run: runRollback,
+	Example: `	Rollback by tag name
+	$ auditctl rollback -t new-tag
+	Rollback by commit hash
+	$ auditctl rollback -s 6dd1f926c346f06fc2c57d356ed648a2b518e74c`,
 }
 
 func runTag(cmd *cobra.Command, args []string) {
@@ -153,13 +163,12 @@ func runRollback(cmd *cobra.Command, args []string) {
 }
 
 func init() {
+	rootCmd.PersistentFlags().StringVarP(&serverAddr, "server-addr", "S", "", "address and port of the webhook server")
 	tagCmd.Flags().StringVarP(&tagAuthor, "author", "a", "no-author", "tag author")
 	tagCmd.Flags().StringVarP(&tagEmail, "email", "e", "default@audit.io", "tag email")
-	tagCmd.Flags().StringVarP(&serverAddr, "server-addr", "", "localhost:8080", "address to send request to")
 	rootCmd.AddCommand(tagCmd)
 	rollbackCmd.Flags().StringVarP(&rollbackTag, "tag", "t", "", "name of tag to rollback to")
 	rollbackCmd.Flags().StringVarP(&rollbackSHA, "sha", "s", "", "commit hash to rollback to")
-	rollbackCmd.Flags().StringVarP(&serverAddr, "server-addr", "", "localhost:8080", "address to send request to")
 	rootCmd.AddCommand(rollbackCmd)
 }
 
