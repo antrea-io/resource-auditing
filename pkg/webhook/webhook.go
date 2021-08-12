@@ -20,12 +20,18 @@ import (
 	"net/http"
 	"time"
 
-	"antrea.io/resource-auditing/pkg/gitops"
-	"antrea.io/resource-auditing/pkg/types"
-
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"k8s.io/klog/v2"
+
+	"antrea.io/resource-auditing/pkg/gitops"
+	"antrea.io/resource-auditing/pkg/types"
 )
+
+type Change struct {
+	Sha     string `json:"sha"`
+	Author  string `json:"author"`
+	Message string `json:"message"`
+}
 
 func events(w http.ResponseWriter, r *http.Request, cr *gitops.CustomRepo) {
 	defer r.Body.Close()
@@ -45,6 +51,61 @@ func events(w http.ResponseWriter, r *http.Request, cr *gitops.CustomRepo) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 		return
+	}
+}
+
+func changes(w http.ResponseWriter, r *http.Request, cr *gitops.CustomRepo) {
+	defer r.Body.Close()
+	if r.Method != "GET" {
+		klog.Errorf("change filtering does not accept non-GET request")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	_, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		klog.ErrorS(err, "unable to read request body")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	filts := r.URL.Query()
+	layout := "2006-01-02T15:04:05.000Z"
+	author := filts.Get("author")
+	since := time.Time{}
+	if filts.Get("since") != "" {
+		since, _ = time.Parse(layout, filts.Get("since"))
+	}
+	until := time.Time{}
+	if filts.Get("until") != "" {
+		until, _ = time.Parse(layout, filts["until"][0])
+	}
+	resource := filts.Get("resource")
+	namespace := filts.Get("namespace")
+	name := filts.Get("name")
+
+	commits, err := cr.FilterCommits(author, since, until, resource, namespace, name)
+	if err != nil {
+		klog.ErrorS(err, "unable to process audit event list")
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	var changes []Change
+	for _, c := range commits {
+		chg := Change{}
+		chg.Sha = c.Hash.String()
+		chg.Author = c.Author.Name
+		chg.Message = c.Message
+		changes = append(changes, chg)
+	}
+	jsonstring, err := json.Marshal(changes)
+	if err != nil {
+		klog.ErrorS(err, "unable to marshal list of changes")
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	_, err = w.Write(jsonstring)
+	if err != nil {
+		klog.ErrorS(err, "unable to write json to response writer")
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
@@ -137,6 +198,9 @@ func rollback(w http.ResponseWriter, r *http.Request, cr *gitops.CustomRepo) {
 func ReceiveEvents(port string, cr *gitops.CustomRepo) error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		events(w, r, cr)
+	})
+	http.HandleFunc("/changes", func(w http.ResponseWriter, r *http.Request) {
+		changes(w, r, cr)
 	})
 	http.HandleFunc("/rollback", func(w http.ResponseWriter, r *http.Request) {
 		rollback(w, r, cr)
