@@ -18,14 +18,19 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
 
 	"github.com/spf13/cobra"
 
 	"antrea.io/resource-auditing/pkg/types"
+
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
 )
+
+// filter flags
+var getAuthor, getSince, getUntil, getResource, getNamespace, getName string
 
 // tag flags
 var tagAuthor, tagEmail string
@@ -41,6 +46,16 @@ var commandName = "auditctl"
 var rootCmd = &cobra.Command{
 	Use:  commandName,
 	Long: commandName + " is the command line tool for managing the auditing resource repository",
+}
+
+var getCmd = &cobra.Command{
+	Use:   "get [-a author] [-s since] [-u until] [-r resource] [-n namespace] [-f name]",
+	Short: "get changes by author, time range, and filepath",
+	Run:   runGet,
+	Example: ` Getting changes by author and filepath
+    $ auditctl get -a kubernetes-admin -r k8s-policies -n default -f allow-client1.yaml
+    [{"sha":"a75dc67fd950b5ed052897b981c8d7b2cb05e9a5","author":"kubernetes-admin","message":"Deleted K8s network policy default/allow-client1"}]
+    `,
 }
 
 var tagCmd = &cobra.Command{
@@ -89,6 +104,34 @@ var rollbackCmd = &cobra.Command{
 	$ auditctl rollback -t new-tag
 	Rollback by commit hash
 	$ auditctl rollback -s 6dd1f926c346f06fc2c57d356ed648a2b518e74c`,
+}
+
+func getURL() string {
+	flags := []string{getAuthor, getSince, getUntil, getResource, getNamespace, getName}
+	flagnames := []string{"author", "since", "until", "resource", "namespace", "name"}
+	params := url.Values{}
+	for idx, flag := range flags {
+		params.Set(flagnames[idx], flag)
+	}
+	reqURL := fmt.Sprintf("http://%s/changes?%s", serverAddr, params.Encode())
+	return reqURL
+}
+
+func runGet(cmd *cobra.Command, args []string) {
+	url := getURL()
+	// #nosec G107: need user-provided URL for server
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(body))
 }
 
 func runTag(cmd *cobra.Command, args []string) {
@@ -164,6 +207,13 @@ func runRollback(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&serverAddr, "server-addr", "S", "", "address and port of the webhook server")
+	getCmd.Flags().StringVarP(&getAuthor, "author", "a", "", "author of changes")
+	getCmd.Flags().StringVarP(&getSince, "since", "s", "", "start of time range")
+	getCmd.Flags().StringVarP(&getUntil, "until", "u", "", "end of time range")
+	getCmd.Flags().StringVarP(&getResource, "resource", "r", "", "resource name to filter by")
+	getCmd.Flags().StringVarP(&getNamespace, "namespace", "n", "", "namespace to filter by")
+	getCmd.Flags().StringVarP(&getName, "name", "f", "", "name to filter by")
+	rootCmd.AddCommand(getCmd)
 	tagCmd.Flags().StringVarP(&tagAuthor, "author", "a", "no-author", "tag author")
 	tagCmd.Flags().StringVarP(&tagEmail, "email", "e", "default@audit.io", "tag email")
 	rootCmd.AddCommand(tagCmd)
