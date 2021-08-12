@@ -12,6 +12,8 @@ reverting the cluster state if the current cluster state is undesirable. A webUI
 service is linked to the repository, allowing for easy visualization of the
 entire history of resource configurations.
 
+![working-gif](https://user-images.githubusercontent.com/10016630/129085491-50f739a9-9570-4fa5-b60c-845c81d5089b.gif)
+
 ## Getting Started
 Ensure `kubectl` is running correctly prior to getting started. A label is used
 to specify the node to run all audit services on. The `nodeAffinity` field is
@@ -20,34 +22,40 @@ determine them. The label can be applied with:
 ```bash
 kubectl label nodes <node-name> audit=target
 ```
-Connect to the control Node and copy `audit-policy.yaml` and `audit-config.yaml`
-to `/etc/kubernetes/manifests`. Run the following commands to create the
-directory the repository will be stored on.
+Run the following command on the Node that was just labelled to create the
+directory the repository will be stored in:
 ```bash
 mkdir -p /data/antrea-audit
+```
+Connect to the control Node and copy `audit-policy.yaml` and `audit-config.yaml`
+to `/etc/kubernetes/addons`. If this directory does not exist, create it with:
+```bash
+mkdir -p /etc/kubernetes/addons
 ```
 Modify the kube-apiserver.yaml manifest by adding the following lines to the
 manifest:
 ```yaml
-    - command
-    - --kube-apiserver
-    - --audit-policy-file=/path/to/audit-policy.yaml
-    - - --audit-config-file=/path/to/audit-config.yaml
+  - command
+    - kube-apiserver
+    - --audit-policy-file=/etc/kubernetes/addons/audit-policy.yaml
+    - --audit-webhook-config-file=/etc/kubernetes/addons/audit-config.yaml
 ...
     volumeMounts:
-    - mountPath: /path/to/audit-policy.yaml
+    - mountPath: /etc/kubernetes/addons/audit-policy.yaml
       name: audit-policy
       readOnly: true
-    - mountPath: /path/to/audit-config.yaml
+    - mountPath: /etc/kubernetes/addons/audit-config.yaml
       name: audit-config
       readOnly: true
 ...
   volumes:
   - hostPath:
-      path: /path/to/audit-policy.yaml
+      path: /etc/kubernetes/addons/audit-policy.yaml
+      type: File
     name: audit-policy
   - hostPath:
-      path: /path/to/audit-config.yaml
+      path: /etc/kubernetes/addons/audit-config.yaml
+      type: File
     name: audit-config
 ```
 Exit the control Node. To deploy the most recent version of resource-auditing,
